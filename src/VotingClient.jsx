@@ -1,9 +1,10 @@
-/* eslint-disable no-unused-vars */
-import React, { Component } from 'react';
-import Vote from './Vote';
-import Result from './Result';
-import database from './database.js';
-import { Typography, withStyles } from 'material-ui';
+import React, { Component } from "react";
+import database from "./database.js";
+import { Typography, withStyles } from "material-ui";
+import ReactChartkick, { BarChart } from "react-chartkick";
+import Chart from "chart.js";
+
+ReactChartkick.addAdapter(Chart);
 
 const styles = {
   voteContainer: {
@@ -12,59 +13,62 @@ const styles = {
     alignItems: "center",
     flex: 1,
     flexFlow: "column",
+    maxWidth: "900px",
+    margin: "0 auto"
   },
   contentContainer: {
-    height: "100%",
+    height: "100%"
   },
   header: {
     textAlign: "center",
     margin: "30px auto"
   }
-}
+};
 
-class VotingClient extends Component {
+class VotingServer extends Component {
   constructor(props) {
     super(props);
-
     this.state = {
-      hadVoted: false,
-      rating: null,
-    }
+      countArray: [],
+      };
+    // Define a local state call countArray which is an array.
+    // See https://reactjs.org/docs/state-and-lifecycle.html#adding-local-state-to-a-class
 
-    this.handleRatingCallback = this.handleRatingCallback.bind(this);
+    //countArray[0] has the number of vote for the "Love" feeling.
+    //countArray[3] for the "bad"
   }
 
-  handleRatingCallback(rating) {
-    
-    // Update the local variables rating and hasVoted. Use this.setState()
-    //here
-    
-    // Here is the reference to where the rating shall be saved on the server. 
-    let ref = "/polls/"+this.props.match.params.pollId+"/votes";
-    
-    // Use database.ref(ref).push() to sent the 'rating' to the server. It shall be saved under the key 'rating'
-    //here
+  componentDidMount() {
+    // componentDidMount is called once at startup. That's a great place to initialize our
+    // function that listen to database changes.
+
+    // ref is the path to the total count.
+    let ref = "/polls/" + this.props.match.params.pollId + "/ratingCount";
+    var countRef = database.ref(ref);
+    countRef.on('value', (snap) =>
+    {
+      this.setState({"countArray": snap.val()});
+    });
+
+    // Here we need to put the function that will listen to database updates in the "ref" location
+    // and we need to store that value locally in "countArray"
   }
+
   render() {
-
     const { classes } = this.props;
 
     return (
-      
-      // feel free to change the layout, text, etc...
       <div className={classes.contentContainer}>
         <div className={classes.header}>
-          <Typography variant="headline">Let's vote!</Typography>
-          <Typography variant="subheading">Poll ID = {this.props.match.params.pollId}</Typography>
+          <Typography> <center> Voting Results</center> </Typography>
+          <Typography> <center> Current Poll ID: {this.props.match.params.pollId}</center> </Typography>
         </div>
         <div className={classes.voteContainer}>
-          {
-            // Here you need to select the <Result> or <Vote> component. Don't forget to pass the properties. 
-          }
+          <BarChart data={[["Love"	, this.state.countArray[0]], ["Good", this.state.countArray[1]], ["Ok", this.state.countArray[2]], ["Bad", this.state.countArray[3]]]} />
         </div>
       </div>
     );
   }
 }
 
-export default withStyles(styles)(VotingClient);
+export default withStyles(styles)(VotingServer);
